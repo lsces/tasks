@@ -1,28 +1,29 @@
-{include file="bitpackage:tasks/select_reasons.tpl"}
 <div class="display task">
 	<div class="header">
 		<h1>{$taskInfo.title}</h1>
 	</div>
 
 	<div class="body">
-		{if $taskInfo}
-			{if $taskInfo.department eq 0}
-				{include file="bitpackage:tasks/select_department.tpl"}
-			{else}
+		{if $taskInfo and $taskInfo.department eq 0 }
 				{include file="bitpackage:tasks/display_task.tpl"}
+			{if $propertyInfo or $backoffice }
+				{include file="bitpackage:tasks/task_survey.tpl"}
 			{/if}
+		{elseif $taskInfo and $taskInfo.department gt 0 }
+
+			{include file="bitpackage:tasks/display_enquiry.tpl"}
 		{/if}
 
-		{if $citizenInfo or $backoffice}
-			{include file="bitpackage:tasks/task_survey.tpl"}
-		{/if}
-
-		{if $citizenInfo}
-			{include file="bitpackage:citizen/citizen_header.tpl"}
-			{include file="bitpackage:citizen/citizen_date_bar.tpl"}
-			{include file="bitpackage:citizen/display_citizen.tpl"}
+		{if $clientInfo}
+			{include file="bitpackage:contact/contact_header.tpl"}
+			{include file="bitpackage:contact/contact_date_bar.tpl"}
+			{include file="bitpackage:contact/display_contact.tpl"}
+		{elseif $propertyInfo}
+			{include file="bitpackage:property/property_header.tpl"}
+			{include file="bitpackage:property/property_date_bar.tpl"}
+			{include file="bitpackage:property/display_property.tpl"}
 		{else}
-			{include file="bitpackage:tasks/citizen_search.tpl"}
+			{include file="bitpackage:tasks/property_search.tpl"}
 		{/if}
 	</div>
 </div> {* end .task *}

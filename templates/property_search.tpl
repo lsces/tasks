@@ -1,5 +1,5 @@
 	<div class="navbar">
-		{form action="`$smarty.const.TASKS_PKG_URL`citizen_search.php" class="find" legend="Find in Citizen entries"}
+		{form action="`$smarty.const.TASKS_PKG_URL`property_search.php" class="find" legend="Find in Property entries"}
 			{foreach from=$hidden item=value key=name}
 				<input type="hidden" name="{$name}" value="{$value}" />
 			{/foreach}

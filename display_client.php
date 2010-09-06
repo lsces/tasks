@@ -1,12 +1,12 @@
 <?php
 /**
- * @version $Header$
+ * @version $Header: /cvsroot/bitweaver/_bit_tasks/display_client.php,v 1.4 2010/02/08 21:27:26 wjames5 Exp $
  *
  * Copyright (c) 2006 bitweaver.org
  * All Rights Reserved. See below for details and a complete list of authors.
  * Licensed under the GNU LESSER GENERAL PUBLIC LICENSE. See http://www.gnu.org/copyleft/lesser.html for details
  *
- * @package citizen
+ * @package client
  * @subpackage functions
  */
 
@@ -24,7 +24,7 @@ if ( $userstate ) {
 		$gTask = new Tasks( null, $userstate );
 		$gTask->load();
 		$updatetask = array();
-		$updatetask['new_citizen'] = $_REQUEST['content_id'];
+		$updatetask['new_client'] = $_REQUEST['content_id'];
 	 	$gTask->store( $updatetask ); 	
 	}
 }

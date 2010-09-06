@@ -20,10 +20,7 @@ $gTask = new Tasks();
 
 $offset = 0;
 if( !empty( $_REQUEST['type'] ) ) {
-	$offset =  ($_REQUEST['type']-1) * 10000;
-}
-if( !empty( $_REQUEST['pass'] ) ) {
-	$offset =  50000;
+	$offset =  ($_REQUEST['type']);
 }
 $newtask = array();
 $newtask['task_offset'] = $offset;

@@ -2,10 +2,10 @@
 {strip}
 <ul>
 	{if $userstate > 0 }
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?refer=1">{biticon iname="go-down" iexplain="Refer to waiting list" ilocation=menu}</a></li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?finish=1">{biticon iname="go-right" iexplain="Finish" ilocation=menu}</a></li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}find_citizen.php">{biticon iname="go-right" iexplain="Find existing citizen" ilocation=menu}</a></li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}add_citizen.php">{biticon iname="go-right" iexplain="Create new citizen" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?refer=2">{biticon iname="go-down" iexplain="Arrived at Site" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?refer=3">{biticon iname="go-previous" iexplain="On Site" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?finish=1">{biticon iname="go-up" iexplain="Clear of Site" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}find_property.php">{biticon iname="applications-office" iexplain="Find property" ilocation=menu}</a></li>
 	{/if}
 	{if !$userstate or $userstate eq 0  }
 		{if $gBitUser->hasPermission( 'p_tasks_view' )}

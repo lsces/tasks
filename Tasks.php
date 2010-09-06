@@ -21,7 +21,8 @@ define( 'TASKS_CONTENT_TYPE_GUID', 'task_ticket' );
  */
 class Tasks extends LibertyContent {
 	var $mTicketId;
-	var $mParentId;
+	var $mPropertyId;
+	var $mClientId;
 
 	/**
 	 * Constructor 
@@ -61,7 +62,7 @@ class Tasks extends LibertyContent {
 		if ( $pContentId ) $this->mContentId = (int)$pContentId;
 		if( $this->verifyId( $this->mContentId ) ) {
  			$query = "select ti.*, lc.*, rs.`title` AS dept_title, rs.`ter_type` AS dept_mode,
- 				tag.`title` AS reason, tag.`reason_source` AS subtag, tag.`tag` AS tag_abv,
+ 				tag.`title` AS status, tag.`reason_source` AS subtag, tag.`tag` AS tag_abv,
  				MOD( ti.`clearance`, 256 ) AS clearance_code,
 				CAST( ti.`clearance` / 256 AS INTEGER ) AS survey,
 				uue.`login` AS modifier_user, uue.`real_name` AS modifier_real_name,
@@ -70,22 +71,25 @@ class Tasks extends LibertyContent {
 				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ti.`ticket_id` )
 				LEFT JOIN `".BIT_DB_PREFIX."users_users` uue ON (uue.`user_id` = lc.`modifier_user_id`)
 				LEFT JOIN `".BIT_DB_PREFIX."users_users` uuc ON (uuc.`user_id` = lc.`user_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."task_roomstat` rs ON (ti.`department` + 80 = rs.`terminal`)
-				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (ti.`tags` = tag.`reason`)
+				LEFT JOIN `".BIT_DB_PREFIX."task_roomstat` rs ON (rs.`terminal` = ti.`department`)
+				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (ti.`room` = tag.`reason`)
 				WHERE ti.`ticket_id`=?";
 			$result = $this->mDb->query( $query, array( $this->mContentId ) );
 
 			if ( $result && $result->numRows() ) {
 				$this->mInfo = $result->fields;
 				$this->mContentId = (int)$result->fields['content_id'];
-				$this->mCitizenId = (int)$result->fields['caller_id'];
+				$this->mPropertyId = (int)$result->fields['caller_id'];
+				$this->mClientId = (int)$result->fields['caller_id'];
 				$this->mInfo['display_url'] = $this->getDisplayUrl();
-				$this->mInfo['title'] = 'Ticket Number - '.$this->mInfo['ticket_no'];
+				$this->mInfo['title'] = $this->mInfo['dept_title'].' - '.$this->mInfo['ticket_id'];
 				$this->mInfo['reason'] = $this->mInfo['tag_abv'].' - '.$this->mInfo['reason'];
-				if ( $this->mInfo['department'] == 0 ) { $this->mInfo['dept_title'] = 'Please select a department'; }
 			}
 		}
 		LibertyContent::load();
+		if ( $this->mInfo['department'] != 0 ) {
+			$this->mInfo['parsed_data'] = $this->parseData();
+		}
 		$this->loadTransactionList();
 		return;
 	}
@@ -118,12 +122,19 @@ class Tasks extends LibertyContent {
 
 		// Secondary store entries
 		if( $this->isValid() ) {
-			if ( !empty( $pParamHash['new_citizen'] ) ) {
-				$pParamHash['task_store']['caller_id'] = $pParamHash['new_citizen'];
-				$pParamHash['task_store']['usn'] = $pParamHash['new_citizen'];
+			if ( !empty( $pParamHash['new_client'] ) ) {
+				$pParamHash['task_store']['caller_id'] = $pParamHash['new_client'];
+				$pParamHash['task_store']['usn'] = $pParamHash['new_client'];
+			}
+			if ( !empty( $pParamHash['new_property'] ) ) {
+				$pParamHash['task_store']['caller_id'] = $pParamHash['new_property'];
+				$pParamHash['task_store']['usn'] = $pParamHash['new_property'];
 			}
 			if ( !empty( $pParamHash['new_dept'] ) ) {
 				$pParamHash['task_store']['department'] = $pParamHash['new_dept'];
+			}
+			if ( !empty( $pParamHash['new_user'] ) ) {
+				$pParamHash['task_store']['staff_id'] = $pParamHash['new_user'];
 			}
 			if ( !empty( $pParamHash['new_room'] ) ) {
 				$pParamHash['task_store']['room'] = $pParamHash['new_room'];
@@ -157,12 +168,12 @@ class Tasks extends LibertyContent {
 					$pParamHash['task_store']['ticket_id'] = $pParamHash['content_id'];
 					$pParamHash['task_store']['ticket_ref'] = $this->mDb->NOW();
 					$pParamHash['task_store']['last'] = $this->mDb->NOW();
-					$pParamHash['task_store']['ticket_no'] = $pParamHash['task_offset']+1;
+					$pParamHash['task_store']['ticket_no'] = $pParamHash['content_id'];
 					$pParamHash['task_store']['office'] = 1;
-					$pParamHash['task_store']['staff_id'] = $gBitUser->mUserId;
+					$pParamHash['task_store']['staff_id'] = 0;
 					$pParamHash['task_store']['init_id'] = $gBitUser->mUserId;
 					$pParamHash['task_store']['caller_id'] = 0;
-					$pParamHash['task_store']['department'] = 0;
+					$pParamHash['task_store']['department'] = $pParamHash['task_offset'];
 				
 					$this->mContentId = $pParamHash['content_id'];
 					$result = $this->mDb->associateInsert( $table, $pParamHash['task_store'] );
@@ -319,8 +330,8 @@ class Tasks extends LibertyContent {
 		$whereSql = $joinSql = $selectSql = '';
 		$bindVars = array();
 // Update to more flexible date management later
-		array_push( $bindVars, 'TODAY' );
-		array_push( $bindVars, 'TOMORROW' );
+//		array_push( $bindVars, 'TODAY' );
+//		array_push( $bindVars, 'TOMORROW' );
 //		$this->getServicesSql( 'content_list_sql_function', $selectSql, $joinSql, $whereSql, $bindVars );
 
 		if ( isset($pListHash['queue_id']) ) {
@@ -331,20 +342,23 @@ class Tasks extends LibertyContent {
 // init_id and staff_id will map to creator_user_id and modifier_user_id when fully converted to LC
 // , lc.* 				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ci.`content_id` )
 
-		$query = "SELECT ti.*, ci.*, tr.`title` as reason,
+		$query = "SELECT ti.*, lp.*, tr.`title` as reason,
 				uue.`login` AS modifier_user, uue.`real_name` AS modifier_real_name,
 				uuc.`login` AS creator_user, uuc.`real_name` AS creator_real_name $selectSql
 				FROM `".BIT_DB_PREFIX."task_ticket` ti 
+				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ti.`ticket_id` )
+				LEFT JOIN `".BIT_DB_PREFIX."property` pro ON (pro.`property_id` = ti.`caller_id`)
+				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lp ON ( lp.`content_id` = pro.`content_id` )
 				LEFT JOIN `".BIT_DB_PREFIX."users_users` uue ON (uue.`user_id` = ti.`staff_id`)
 				LEFT JOIN `".BIT_DB_PREFIX."users_users` uuc ON (uuc.`user_id` = ti.`init_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."citizen` ci ON (ci.`usn` = ti.`usn`)
-				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tr ON (tr.`reason` = ti.`tags`)
+				LEFT JOIN `".BIT_DB_PREFIX."contact` ci ON (ci.`contact_id` = ti.`caller_id`)
+				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tr ON (tr.`reason` = ti.`room`)
 				$joinSql
-				WHERE ti.`ticket_ref` BETWEEN ? AND ? $whereSql  
+				WHERE ti.`room` >= 0 $whereSql  
 				order by ti.`ticket_ref`";
 		$query_cant = "SELECT COUNT(ti.`ticket_no`) FROM `".BIT_DB_PREFIX."task_ticket` ti
 				$joinSql
-				WHERE ti.`ticket_ref` BETWEEN ? AND ? $whereSql";
+				WHERE ti.`room` >= 0 $whereSql";
 
 		$ret = array();
 		$this->mDb->StartTrans();
@@ -688,9 +702,12 @@ class Tasks extends LibertyContent {
 	function loadTransactionList() {
 		if( $this->isValid() ) {
 		
-			$sql = "SELECT tran.* 
+			$sql = "SELECT tran.*, tag.`title` AS status, sn.`real_name` AS staff_name 
 				FROM `".BIT_DB_PREFIX."task_transaction` tran
-				WHERE tran.ticket_id = ?";
+				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (tran.`room` = tag.`reason`)
+				LEFT JOIN `".BIT_DB_PREFIX."users_users` sn ON (sn.`user_id` = tran.`staff_id`)
+				WHERE tran.ticket_id = ?
+				ORDER BY tran.`transact_no`";
 
 			$result = $this->mDb->query( $sql, array( $this->mContentId ) );
 

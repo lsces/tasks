@@ -19,11 +19,11 @@ require_once( TASKS_PKG_PATH.'Tasks.php');
 $gTask = new Tasks();
 
 $currentInfo = array();
-$currentInfo['title'] = 'View Enquiries for ';
+$currentInfo['title'] = 'View Outstanding Tasks';
 $currentInfo['tickets'] = $gTask->getList( $_REQUEST );
 
 $gBitSmarty->assign_by_ref( 'currentInfo', $currentInfo );
 
 // Display the template
-$gBitSystem->display( 'bitpackage:tasks/view_tickets.tpl', tra( 'View Enquiries' ) , array( 'display_mode' => 'list' ));
+$gBitSystem->display( 'bitpackage:tasks/view_tickets.tpl', tra( 'View Task Tickets' ) , array( 'display_mode' => 'list' ));
 ?>

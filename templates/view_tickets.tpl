@@ -10,12 +10,13 @@
 
 		<div class="row">
 			<table>
-				<caption>{tr}List of Current Days enquiries{/tr}</caption>
+				<caption>{tr}List of Outstanding enquiries{/tr}</caption>
 				<thead>
 					<tr>
+						<th>Ticket</th>
 						<th>Date</th>
-						<th>Name</th>
-						<th>Reason</th>
+						<th>Site</th>
+						<th>Status</th>
 						<th>Note</th>
 					</tr>
 				</thead>
@@ -23,21 +24,19 @@
 					{section name=ticket loop=$currentInfo.tickets}
 						<tr class="{cycle values="even,odd"}" title="{$currentInfo.ticket[ticket].title|escape}">
 							<td>
-								{$currentInfo.tickets[ticket].ticket_ref|bit_long_date} - {$currentInfo.tickets[ticket].ticket_no}
+								<a title="View {$currentInfo.tickets[ticket].ticket_id}" href="{$smarty.const.TASKS_PKG_URL}index.php?content_id={$currentInfo.tickets[ticket].ticket_id}">{$currentInfo.tickets[ticket].ticket_id}</a>
 							</td>
 							<td>
-								{$currentInfo.tickets[ticket].forename|escape} {$currentInfo.tickets[ticket].surname|escape}
+								{$currentInfo.tickets[ticket].ticket_ref|bit_long_datetime}
 							</td>
 							<td>
-								{$currentInfo.tickets[ticket].tags|escape}
+								{$currentInfo.tickets[ticket].title|escape}
 							</td>
 							<td>
-								<span class="actionicon">
-									{smartlink ititle="View" ifile="index.php" ibiticon="icons/accessories-text-editor" content_id=$currentInfo.tickets[ticket].ticket_id}
-								</span>
-								<label for="ev_{$currentInfo.tickets[ticket].content_id}">	
-									{$currentInfo.tickets[ticket].creator_real_name}
-								</label>
+								{$currentInfo.tickets[ticket].reason|escape}
+							</td>
+							<td>
+								{$currentInfo.tickets[ticket].note|escape}
 							</td>
 						</tr>
 					{sectionelse}
