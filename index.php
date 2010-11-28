@@ -53,7 +53,7 @@ if ( $userstate ) {
 	$gTask = new Tasks();
 }
 
-if ( $gTask->isValid() and $userstate <> 0 ) {
+if ( $userstate <> 0 ) {
 	$gBitSmarty->assign_by_ref( 'userstate', $userstate );
 	$gBitSmarty->assign_by_ref( 'taskInfo', $gTask->mInfo );
 	$dept_tree = $gTask->listQueues();

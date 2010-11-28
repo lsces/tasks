@@ -5,24 +5,26 @@
 			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?refer=2">{biticon iname="go-down" iexplain="Arrived at Site" ilocation=menu}</a></li>
 			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?refer=3">{biticon iname="go-previous" iexplain="On Site" ilocation=menu}</a></li>
 			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}index.php?finish=1">{biticon iname="go-up" iexplain="Clear of Site" ilocation=menu}</a></li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}find_property.php">{biticon iname="applications-office" iexplain="Find property" ilocation=menu}</a></li>
+{*			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}find_property.php">{biticon iname="applications-office" iexplain="Find property" ilocation=menu}</a></li>
+*}
 	{/if}
 	{if !$userstate or $userstate eq 0  }
 		{if $gBitUser->hasPermission( 'p_tasks_view' )}
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}view.php">{biticon iname="document-new" iexplain="View Queues" ilocation=menu}</a></li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}view_tickets.php">{biticon iname="document-new" iexplain="View Tasks" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}view.php">{biticon iname="document-new" iexplain="View Patrol List" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}view_tickets.php">{biticon iname="document-new" iexplain="View Jobs" ilocation=menu}</a></li>
 		{/if}
 	
 		{if $gBitUser->hasPermission( 'p_tasks_create' )}
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}add_enquiry.php?type=1">{biticon iname="document-print" iexplain="Create Ticket" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}add_callout.php">{biticon iname="document-print" iexplain="Create Callout" ilocation=menu}</a></li>
+			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}add_patrol.php">{biticon iname="document-print" iexplain="Add to Patrol" ilocation=menu}</a></li>
 			<li><a class="item" title="" href="add_enquiry.php?type=2">{biticon iname="document-new" iexplain="Create Enquiry" ilocation=menu}</a>
 				<ul>
+					<li><a class="item" title="" href="add_enquiry.php?type=1">{biticon iname="phone" iexplain="Report" ilocation=menu}</a></li>
 					<li><a class="item" title="" href="add_enquiry.php?type=2">{biticon iname="phone" iexplain="Telephone" ilocation=menu}</a></li>
 					<li><a class="item" title="" href="add_enquiry.php?type=3">{biticon iname="internet-mail" iexplain="eMessage" ilocation=menu}</a></li>
 					<li><a class="item" title="" href="add_enquiry.php?type=4">{biticon iname="emblem-mail" iexplain="Mail" ilocation=menu}</a></li>
 				</ul>
 			</li>
-			<li><a class="item" href="{$smarty.const.TASKS_PKG_URL}add_enquiry.php?pass=1">{biticon iname="emblem-photos" iexplain="Visitor Pass" ilocation=menu}</a></li>
 		{/if}
 	
 		{if $gBitUser->hasPermission( 'p_tasks_supervise' )}

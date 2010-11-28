@@ -12,14 +12,12 @@
 /**
  * required setup
  */
-require_once( LIBERTY_PKG_PATH.'LibertyContent.php' );		// Tasks base class
-
-define( 'TASKS_CONTENT_TYPE_GUID', 'task_ticket' );
+require_once( LIBERTY_PKG_PATH.'LibertyBase.php' );		// Tasks base class
 
 /**
  * @package tasks
  */
-class Tasks extends LibertyContent {
+class Tasks extends LibertyBase {
 	var $mTicketId;
 	var $mPropertyId;
 	var $mClientId;
@@ -32,25 +30,15 @@ class Tasks extends LibertyContent {
 	 * @param integer Base content_id identifier 
 	 */
 	function Tasks( $pTicketId = NULL, $pContentId = NULL ) {
-		LibertyContent::LibertyContent();
-		$this->registerContentType( TASKS_CONTENT_TYPE_GUID, array(
-				'content_type_guid' => TASKS_CONTENT_TYPE_GUID,
-				'content_name' => 'Task Ticket',
-				'handler_class' => 'Tasks',
-				'handler_package' => 'tasks',
-				'handler_file' => 'Tasks.php',
-				'maintainer_url' => 'http://lsces.co.uk'
-			) );
+		BitBase::BitBase();
 		$this->mTicketId = (int)$pTicketId;
 		$this->mContentId = (int)$pContentId;
-		$this->mCitizenId = 0;
-		$this->mContentTypeGuid = TASKS_CONTENT_TYPE_GUID;
-				// Permission setup
+		$this->mPropertyId = 0;
+		// Permission setup
 		$this->mViewContentPerm  = 'p_tasks_view';
 		$this->mCreateContentPerm  = 'p_tasks_create';
 		$this->mUpdateContentPerm  = 'p_tasks_update';
 		$this->mAdminContentPerm = 'p_tasks_admin';
-		
 	}
 
 	/**
@@ -61,17 +49,8 @@ class Tasks extends LibertyContent {
 	function load($pContentId = NULL) {
 		if ( $pContentId ) $this->mContentId = (int)$pContentId;
 		if( $this->verifyId( $this->mContentId ) ) {
- 			$query = "select ti.*, lc.*, rs.`title` AS dept_title, rs.`ter_type` AS dept_mode,
- 				tag.`title` AS status, tag.`reason_source` AS subtag, tag.`tag` AS tag_abv,
- 				MOD( ti.`clearance`, 256 ) AS clearance_code,
-				CAST( ti.`clearance` / 256 AS INTEGER ) AS survey,
-				uue.`login` AS modifier_user, uue.`real_name` AS modifier_real_name,
-				uuc.`login` AS creator_user, uuc.`real_name` AS creator_real_name
-				FROM `".BIT_DB_PREFIX."task_ticket` ti
-				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ti.`ticket_id` )
-				LEFT JOIN `".BIT_DB_PREFIX."users_users` uue ON (uue.`user_id` = lc.`modifier_user_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."users_users` uuc ON (uuc.`user_id` = lc.`user_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."task_roomstat` rs ON (rs.`terminal` = ti.`department`)
+ 			$query = "select ti.*, tag.`title` AS status, tag.`reason_source` AS subtag, tag.`tag` AS tag_abv, tag.`reason`
+ 				FROM `".BIT_DB_PREFIX."task_ticket` ti
 				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (ti.`room` = tag.`reason`)
 				WHERE ti.`ticket_id`=?";
 			$result = $this->mDb->query( $query, array( $this->mContentId ) );
@@ -82,15 +61,11 @@ class Tasks extends LibertyContent {
 				$this->mPropertyId = (int)$result->fields['caller_id'];
 				$this->mClientId = (int)$result->fields['caller_id'];
 				$this->mInfo['display_url'] = $this->getDisplayUrl();
-				$this->mInfo['title'] = $this->mInfo['dept_title'].' - '.$this->mInfo['ticket_id'];
+				$this->mInfo['title'] = 'Ticket - '.$this->mInfo['ticket_id'];
 				$this->mInfo['reason'] = $this->mInfo['tag_abv'].' - '.$this->mInfo['reason'];
 			}
 		}
-		LibertyContent::load();
-		if ( $this->mInfo['department'] != 0 ) {
-			$this->mInfo['parsed_data'] = $this->parseData();
-		}
-		$this->loadTransactionList();
+//		$this->loadTransactionList();
 		return;
 	}
 
@@ -101,27 +76,20 @@ class Tasks extends LibertyContent {
 	* @access private
 	**/
 	function verify( &$pParamHash ) {
-		// make sure we're all loaded up if everything is valid
-		if( $this->isValid() && empty( $this->mInfo ) ) {
-			$this->load( TRUE );
-		}
-
-		// It is possible a derived class set this to something different
-		if( empty( $pParamHash['content_type_guid'] ) ) {
-			$pParamHash['content_type_guid'] = $this->mContentTypeGuid;
-		}
-
-		if( !empty( $this->mContentId ) ) {
-			$pParamHash['content_id'] = $this->mContentId;
+		if ( !empty( $pParamHash['property'] ) ) {
+			$pParamHash['caller_id'] = $pParamHash['property'];
 		} else {
-			unset( $pParamHash['content_id'] );
+			$pParamHash['caller_id'] = 0;
 		}
-
-		// content store
-		// check for name issues, first truncate length if too long
-
+			
+		if ( !empty( $pParamHash['patrol'] ) ) {
+			$pParamHash['ticket_ref'] = $pParamHash['patrol'];
+		} else {
+			$pParamHash['ticket_ref'] = $this->mDb->NOW();
+		}
+			
 		// Secondary store entries
-		if( $this->isValid() ) {
+/*		if( $this->isValid() ) {
 			if ( !empty( $pParamHash['new_client'] ) ) {
 				$pParamHash['task_store']['caller_id'] = $pParamHash['new_client'];
 				$pParamHash['task_store']['usn'] = $pParamHash['new_client'];
@@ -145,7 +113,8 @@ class Tasks extends LibertyContent {
 				// Add transaction table insert here to replace database trigger
 			}
 		}
-		return( count( $this->mErrors ) == 0 );
+*/
+				return( count( $this->mErrors ) == 0 );
 	}
 
 	/**
@@ -158,33 +127,29 @@ class Tasks extends LibertyContent {
 			// Start a transaction wrapping the whole insert into liberty 
 
 			$this->mDb->StartTrans();
-			if ( LibertyContent::store( $pParamHash ) ) {
-				$table = BIT_DB_PREFIX."task_ticket";
-				if( $this->isValid() && !empty( $pParamHash['task_store'] ) ) {
-						$result = $this->mDb->associateUpdate( $table, $pParamHash['task_store'], array( "ticket_id" => $this->mContentId ) );
-				} else {
-					global $gBitUser;
-					
-					$pParamHash['task_store']['ticket_id'] = $pParamHash['content_id'];
-					$pParamHash['task_store']['ticket_ref'] = $this->mDb->NOW();
-					$pParamHash['task_store']['last'] = $this->mDb->NOW();
-					$pParamHash['task_store']['ticket_no'] = $pParamHash['content_id'];
-					$pParamHash['task_store']['office'] = 1;
-					$pParamHash['task_store']['staff_id'] = 0;
-					$pParamHash['task_store']['init_id'] = $gBitUser->mUserId;
-					$pParamHash['task_store']['caller_id'] = 0;
-					$pParamHash['task_store']['department'] = $pParamHash['task_offset'];
-				
-					$this->mContentId = $pParamHash['content_id'];
-					$result = $this->mDb->associateInsert( $table, $pParamHash['task_store'] );
-				}
-				// load before completing transaction as firebird isolates results
-				$this->load();
-				$this->mDb->CompleteTrans();
+			$table = BIT_DB_PREFIX."task_ticket";
+			if( !empty( $pParamHash['task_store'] ) ) {
+					$result = $this->mDb->associateUpdate( $table, $pParamHash['task_store'], array( "ticket_id" => $this->mContentId ) );
 			} else {
-				$this->mDb->RollbackTrans();
-				$this->mErrors['store'] = 'Failed to store this task ticket.';
+				global $gBitUser;
+
+				$pParamHash['task_store']['content_id'] = $pParamHash['content_id'];
+				$pParamHash['task_store']['ticket_id'] = $this->mDb->GenID( 'contact_xref_seq' );
+				$pParamHash['task_store']['ticket_ref'] = $pParamHash['ticket_ref'];
+				$pParamHash['task_store']['last'] = $this->mDb->NOW();
+				$pParamHash['task_store']['ticket_no'] = $pParamHash['content_id'];
+				$pParamHash['task_store']['office'] = 1;
+				$pParamHash['task_store']['staff_id'] = 0;
+				$pParamHash['task_store']['init_id'] = $gBitUser->mUserId;
+				$pParamHash['task_store']['caller_id'] = $pParamHash['caller_id'];
+				$pParamHash['task_store']['department'] = $pParamHash['task_offset'];
+			
+				$this->mContentId = $pParamHash['content_id'];
+				$result = $this->mDb->associateInsert( $table, $pParamHash['task_store'] );
 			}
+			// load before completing transaction as firebird isolates results
+			$this->load();
+			$this->mDb->CompleteTrans();
 		}
 		return( count( $this->mErrors ) == 0 );
 	}
@@ -197,16 +162,12 @@ class Tasks extends LibertyContent {
 		$ret = FALSE;
 		if ($this->isValid() ) {
 			$this->mDb->StartTrans();
-			$query = "DELETE FROM `".BIT_DB_PREFIX."citizen` WHERE `content_id` = ?";
+			$query = "DELETE FROM `".BIT_DB_PREFIX."tasks_ticket` WHERE `ticket_id` = ?";
 			$result = $this->mDb->query($query, array($this->mContentId ) );
-			$query = "DELETE FROM `".BIT_DB_PREFIX."citizen_type_map` WHERE `content_id` = ?";
+			$query = "DELETE FROM `".BIT_DB_PREFIX."tasks_transactions` WHERE `ticket_id` = ?";
 			$result = $this->mDb->query($query, array($this->mContentId ) );
-			if (LibertyContent::expunge() ) {
+			$this->mDb->CompleteTrans();
 			$ret = TRUE;
-				$this->mDb->CompleteTrans();
-			} else {
-				$this->mDb->RollbackTrans();
-			}
 		}
 		return $ret;
 	}
@@ -291,9 +252,9 @@ class Tasks extends LibertyContent {
 	 */
 	function getNextTask( $queue ) {
 		$query = "SELECT cd.`ticket_id` FROM  `".BIT_DB_PREFIX."task_ticket` cd
-						 WHERE cd.`ticket_ref` BETWEEN 'TODAY' AND 'TOMORROW' AND cd.`room` = $queue + 80
-						 AND cd.`office` = 1
-				  		 ORDER BY cd.`ticket_ref`";
+					WHERE cd.`ticket_ref` BETWEEN 'TODAY' AND 'TOMORROW' AND cd.`room` = $queue + 80
+					AND cd.`office` = 1
+				  	ORDER BY cd.`ticket_ref`";
 		$next = $this->mDb->getOne( $query );
 // Add switch of user state to serving!
 		if ( $next ) return true;
@@ -329,36 +290,21 @@ class Tasks extends LibertyContent {
 		
 		$whereSql = $joinSql = $selectSql = '';
 		$bindVars = array();
+		array_push( $bindVars, $pListHash['content_id'] );
 // Update to more flexible date management later
 //		array_push( $bindVars, 'TODAY' );
 //		array_push( $bindVars, 'TOMORROW' );
 //		$this->getServicesSql( 'content_list_sql_function', $selectSql, $joinSql, $whereSql, $bindVars );
 
-		if ( isset($pListHash['queue_id']) ) {
-			$whereSql .= " AND ti.`room` = 80 + ? ";
-			array_push( $bindVars, $pListHash['queue_id'] );
-		}
-
-// init_id and staff_id will map to creator_user_id and modifier_user_id when fully converted to LC
-// , lc.* 				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ci.`content_id` )
-
-		$query = "SELECT ti.*, lp.*, tr.`title` as reason,
-				uue.`login` AS modifier_user, uue.`real_name` AS modifier_real_name,
-				uuc.`login` AS creator_user, uuc.`real_name` AS creator_real_name $selectSql
+		$query = "SELECT ti.*, tr.`title` as reason
 				FROM `".BIT_DB_PREFIX."task_ticket` ti 
-				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lc ON ( lc.`content_id` = ti.`ticket_id` )
-				LEFT JOIN `".BIT_DB_PREFIX."property` pro ON (pro.`property_id` = ti.`caller_id`)
-				INNER JOIN `".BIT_DB_PREFIX."liberty_content` lp ON ( lp.`content_id` = pro.`content_id` )
-				LEFT JOIN `".BIT_DB_PREFIX."users_users` uue ON (uue.`user_id` = ti.`staff_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."users_users` uuc ON (uuc.`user_id` = ti.`init_id`)
-				LEFT JOIN `".BIT_DB_PREFIX."contact` ci ON (ci.`contact_id` = ti.`caller_id`)
 				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tr ON (tr.`reason` = ti.`room`)
 				$joinSql
-				WHERE ti.`room` >= 0 $whereSql  
+				WHERE ti.`content_id` = ? $whereSql  
 				order by ti.`ticket_ref`";
 		$query_cant = "SELECT COUNT(ti.`ticket_no`) FROM `".BIT_DB_PREFIX."task_ticket` ti
 				$joinSql
-				WHERE ti.`room` >= 0 $whereSql";
+				WHERE ti.`content_id` = ? $whereSql";
 
 		$ret = array();
 		$this->mDb->StartTrans();
@@ -422,276 +368,26 @@ class Tasks extends LibertyContent {
 		}
 		return $ret;
 	}
-
+	
 	/**
-	 * TicketRecordLoad( $data );
-	 * Ticket file import  
+	 * Returns list of patrol activity
+	 *
+	 * @param integer 
+	 * @return array patrol activity records
 	 */
-	function TicketRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_ticket";
+	function getPatrolList( &$pListHash = NULL ) {
+		$query = "SELECT tic.*, r.title AS patrol, lc.*
+			FROM `".BIT_DB_PREFIX."task_ticket` tic
+			LEFT JOIN `".BIT_DB_PREFIX."task_reason` r ON r.`reason` = tic.`room` 
+			LEFT JOIN `".BIT_DB_PREFIX."liberty_content` lc ON lc.`content_id` = tic.`caller_id` 
+			WHERE tic.`room` = 1 AND tic.`ticket_ref` BETWEEN CURRENT_DATE AND CURRENT_DATE + 1
+			ORDER BY tic.`ticket_ref`";
 
-		$pDataHash['ticket_store']['office'] = $data[0];
-		$pDataHash['ticket_store']['ticket_id'] = $data[1];
-		$pDataHash['ticket_store']['ticket_ref'] = $data[2];
-		$pDataHash['ticket_store']['ticket_no'] = $data[3];
-		$pDataHash['ticket_store']['tags'] = $data[4];
-		$pDataHash['ticket_store']['clearance'] = $data[5];
-		$pDataHash['ticket_store']['room'] = $data[6];
-		if ( $data[7] == '[null]' )
-			$pDataHash['ticket_store']['note'] = '';
-		else
-			$pDataHash['ticket_store']['note'] = $data[7];
-		if ( $data[8] == '[null]' )
-			$pDataHash['ticket_store']['last'] = '';
-		else
-			$pDataHash['ticket_store']['last'] = $data[8];
-		$pDataHash['ticket_store']['staff_id'] = $data[9];
-		$pDataHash['ticket_store']['init_id'] = $data[10];
-		$pDataHash['ticket_store']['caller_id'] = $data[11];
-		$pDataHash['ticket_store']['appoint_id'] = $data[12];
-		$pDataHash['ticket_store']['applet'] = $data[13];
-		if ( $data[14] != '[null]' ) $pDataHash['ticket_store']['memo'] = $data[14];
-		if ( $data[15] == '[null]' )
-			$pDataHash['ticket_store']['department'] = 0;
-		else
-			$pDataHash['ticket_store']['department'] = $data[15];
-
-		// Create LC entry details from legacy data
-		global $gBitSystem;
-		
-		$this->mDb->StartTrans();
-		$this->mContentId = 0;
-		$pDataHash['content_id'] = 0;
-		$pDataHash['user_id'] = $pDataHash['ticket_store']['init_id'];
-		$pDataHash['modifier_user_id'] = $pDataHash['ticket_store']['staff_id'];
-		$pDataHash['created'] = $gBitSystem->mServerTimestamp->getTimestampFromISO($pDataHash['ticket_store']['ticket_ref'], true);
-		$pDataHash['event_time'] = $pDataHash['created'];
-		$pDataHash['last_modified'] = $gBitSystem->mServerTimestamp->getTimestampFromISO($pDataHash['ticket_store']['last'], true);
-		$pDataHash['title'] = $pDataHash['ticket_store']['ticket_ref'].'-Ticket-'.$pDataHash['ticket_store']['ticket_no'];
-		$pDataHash['content_status_id'] = 60; // Mark all records Finished - data can't be modified, so read only!
-		if ( LibertyContent::store( $pDataHash ) ) {
-			$pDataHash['ticket_store']['content_id'] = $pDataHash['content_id'];
-			$result = $this->mDb->associateInsert( $table, $pDataHash['ticket_store'] );
-			$this->mDb->CompleteTrans();
-		} else {
-			$this->mDb->RollbackTrans();
-			$this->mErrors['store'] = 'Failed to store this ticket.';
-		}				
-	}
-
-	/**
-	 * TransactionRecordLoad( $data );
-	 * Transaction file import  
-	 */
-	function TransactionRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_transaction";
-		
-		$pDataHash['data_store']['ticket_id'] = $data[0];
-		$pDataHash['data_store']['transact_no'] = $data[1];
-		$pDataHash['data_store']['transact'] = $data[2];
-		$pDataHash['data_store']['ticket_ref'] = $data[3];
-		$pDataHash['data_store']['staff_id'] = $data[4];
-		$pDataHash['data_store']['previous'] = $data[5];
-		$pDataHash['data_store']['room'] = $data[6];
-		$pDataHash['data_store']['applet'] = $data[7];
-		$pDataHash['data_store']['office'] = $data[8];
-		$pDataHash['data_store']['ticket_no'] = $data[9];
-		if ( $data[10] == '[null]' )
-			$pDataHash['data_store']['proom'] = 0;
-		else
-			$pDataHash['data_store']['proom'] = $data[10];
-		if ( $data[11] == '[null]' )
-			$pDataHash['data_store']['tags'] = 0;
-		else
-			$pDataHash['data_store']['tags'] = $data[11];
-		if ( $data[12] == '[null]' )
-			$pDataHash['data_store']['clearance'] = 0;
-		else
-			$pDataHash['data_store']['clearance'] = $data[12];
-		$result = $this->mDb->associateInsert( $table, $pDataHash['data_store'] );
-	}
-
-	/**
-	 * ReasonRecordLoad( $data );
-	 * Reason file import  
-	 */
-	function ReasonRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_reason";
-		
-		$pDataHash['data_store']['reason'] = $data[0];
-		$pDataHash['data_store']['title'] = $data[1];
-		$pDataHash['data_store']['reason_type'] = $data[2];
-		$pDataHash['data_store']['reason_source'] = $data[3];
-		if ( $data[4] == '[null]' )
-			$pDataHash['data_store']['tag'] = '';
-		else
-			$pDataHash['data_store']['tag'] = $data[4];
-		$result = $this->mDb->associateInsert( $table, $pDataHash['data_store'] );
-	}
-
-	/**
-	 * RoomstatRecordLoad( $data );
-	 * Roomstat file import  
-	 */
-	function RoomstatRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_roomstat";
-		
-		$pDataHash['data_store']['office'] = $data[0];
-		$pDataHash['data_store']['terminal'] = $data[1];
-		$pDataHash['data_store']['title'] = $data[2];
-		if ( $data[3] == '[null]' )
-			$pDataHash['data_store']['head'] = '';
-		else
-			$pDataHash['data_store']['head'] = $data[3];
-		if ( $data[4] == '[null]' )
-			$pDataHash['data_store']['announce'] = '';
-		else
-			$pDataHash['data_store']['announce'] = $data[4];
-		$pDataHash['data_store']['ter_type'] = $data[5];
-		$pDataHash['data_store']['led'] = $data[6];
-		if ( $data[7] != '[null]' ) $pDataHash['data_store']['ledhead'] = $data[7];
-		if ( $data[8] != '[null]' ) $pDataHash['data_store']['beacon'] = $data[8];
-		if ( $data[9] != '[null]' ) $pDataHash['data_store']['camera'] = $data[9];
-		if ( $data[10] != '[null]' ) $pDataHash['data_store']['serving'] = $data[10];
-		if ( $data[11] != '[null]' ) $pDataHash['data_store']['act1'] = $data[11];
-		if ( $data[12] != '[null]' ) $pDataHash['data_store']['fro_'] = $data[12];
-		if ( $data[13] != '[null]' ) $pDataHash['data_store']['alarm'] = $data[13];
-		if ( $data[14] != '[null]' ) $pDataHash['data_store']['curmode'] = $data[14];
-		if ( $data[15] != '[null]' ) $pDataHash['data_store']['x1'] = $data[15];
-		if ( $data[16] != '[null]' ) $pDataHash['data_store']['x2'] = $data[16];
-		if ( $data[17] != '[null]' ) $pDataHash['data_store']['x3'] = $data[17];
-		if ( $data[18] != '[null]' ) $pDataHash['data_store']['x4'] = $data[18];
-		if ( $data[19] != '[null]' ) $pDataHash['data_store']['x5'] = $data[19];
-		if ( $data[20] != '[null]' ) $pDataHash['data_store']['x6'] = $data[20];
-		if ( $data[21] != '[null]' ) $pDataHash['data_store']['x7'] = $data[21];
-		if ( $data[22] != '[null]' ) $pDataHash['data_store']['x8'] = $data[22];
-		if ( $data[23] != '[null]' ) $pDataHash['data_store']['x9'] = $data[23];
-		if ( $data[24] != '[null]' ) $pDataHash['data_store']['x10'] = $data[24];
-		if ( $data[25] != '[null]' ) $pDataHash['data_store']['status'] = $data[25];
-		if ( $data[26] != '[null]' ) $pDataHash['data_store']['logon'] = $data[26];
-		if ( $data[27] != '[null]' ) $pDataHash['data_store']['ter_location'] = $data[27];
-		if ( $data[28] != '[null]' ) $pDataHash['data_store']['ticketprint'] = $data[28];
-		if ( $data[29] != '[null]' ) $pDataHash['data_store']['reportprint'] = $data[29];
-		if ( $data[30] != '[null]' ) $pDataHash['data_store']['booking'] = $data[30];
-		if ( $data[31] != '[null]' ) $pDataHash['data_store']['book'] = $data[31];
-		$result = $this->mDb->associateInsert( $table, $pDataHash['data_store'] );
-	}
-
-	/**
-	 * ReasonRecordLoad( $data );
-	 * Reason file import  
-	 */
-	function CallerRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_caller";
-		
-		$pDataHash['data_store']['caller_id'] = $data[0];
-		if ( $data[1] == '[null]' )
-			$pDataHash['data_store']['cltype'] = 0;
-		else
-			$pDataHash['data_store']['cltype'] = $data[1];
-		$pDataHash['data_store']['title'] = $data[2];
-		$pDataHash['data_store']['surname'] = $data[3];
-		$pDataHash['data_store']['forename'] = $data[4];
-		$pDataHash['data_store']['company'] = $data[5];
-		if ( $data[6] == '[null]' )
-			$pDataHash['data_store']['ni'] = '';
-		else
-			$pDataHash['data_store']['ni'] = $data[6];
-		if ( $data[7] == '[null]' )
-			$pDataHash['data_store']['hbis'] = '';
-		else
-			$pDataHash['data_store']['hbis'] = $data[7];
-		$pDataHash['data_store']['address'] = $data[8];
-		$pDataHash['data_store']['postcode'] = $data[9];
-		if ( $data[10] != '[null]' ) $pDataHash['data_store']['lastvisit'] = $data[10];
-		if ( $data[11] == '[null]' )
-			$pDataHash['data_store']['specialneeds'] = '';
-		else
-			$pDataHash['data_store']['specialneeds'] = $data[11];
-		if ( $data[12] == '[null]' )
-			$pDataHash['data_store']['staff_id'] = 0;
-		else
-			$pDataHash['data_store']['staff_id'] = $data[12];
-		if ( $data[13] == '[null]' )
-			$pDataHash['data_store']['note'] = '';
-		else
-			$pDataHash['data_store']['note'] = $data[13];
-		if ( $data[14] != '[null]' ) $pDataHash['data_store']['memo'] = $data[14];
-		if ( $data[15] != '[null]' ) $pDataHash['data_store']['cllink'] = $data[15];
-		if ( $data[16] == '[null]' )
-			$pDataHash['data_store']['usn'] = 0;
-		else
-			$pDataHash['data_store']['usn'] = $data[16];
-		$result = $this->mDb->associateInsert( $table, $pDataHash['data_store'] );
-	}
-
-	/**
-	 * StaffRecordLoad( $data );
-	 * Staff file import  
-	 */
-	function StaffRecordLoad( &$data ) {
-		$table = BIT_DB_PREFIX."task_staff";
-		
-		$pDataHash['data_store']['user_id'] = $data[0];
-		$pDataHash['login_store']['user_id'] = $data[0];
-		$pDataHash['data_store']['surname'] = $data[1];
-		$pDataHash['data_store']['forename'] = $data[2];
-		$pDataHash['data_store']['initials'] = $data[3];
-		$pDataHash['login_store']['login'] = strtolower( $data[1].substr( $data[2], 0, 1 ) );
-		$pDataHash['login_store']['real_name'] = ucfirst( $data[2] ).' '.ucfirst( $data[1] );
-		$pDataHash['login_store']['password'] = $pDataHash['login_store']['login'];
-// Need to link this to system settings but manual will work for now
-		$pDataHash['login_store']['email'] = ucfirst( $data[2] ).'.'.ucfirst( $data[1] ).'@rother.gov.uk';
-		if ( $data[4] == '[null]' )
-			$pDataHash['data_store']['direct'] = '';
-		else
-			$pDataHash['data_store']['direct'] = $data[4];
-		$pDataHash['data_store']['team'] = $data[5];
-		if ( $data[6] == '[null]' )
-			$pDataHash['data_store']['ext'] = '';
-		else
-			$pDataHash['data_store']['ext'] = $data[6];
-		$pDataHash['data_store']['category'] = $data[7];
-		$pDataHash['data_store']['logon'] = $data[8];
-		if ( $data[9] == '[null]' )
-			$pDataHash['data_store']['note'] = '';
-		else
-			$pDataHash['data_store']['note'] = $data[9];
-		$pDataHash['data_store']['logged'] = 0;
-		$pDataHash['data_store']['content_id'] = 0;
-		$pDataHash['data_store']['office'] = $data[14];
-
-// Need to map category to role/group setting
-		$newUser = new BitPermUser();
-		$result = $newUser->ImportUser( $pDataHash['login_store'] );
-		$newUser->storePreference('phone_no', $data[4] );
-		$newUser->storePreference('team', $data[5] );
-// This should be populated by the system from site defaults
-		$newUser->storePreference('site_display_timezone', 'Europe/London' );
-		$newUser->storePreference('site_display_utc', 'Fixed' );
-		$newUser->storePreference('users_country', 'United_Kingdom' );
-		
-//		$result = $this->mDb->associateInsert( $table, $pDataHash['data_store'] );
-	}
-
-	/**
-	 * Delete golden object and all related records
-	 */
-	function HistoryExpunge()
-	{
-		$ret = FALSE;
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_ticket`";
 		$result = $this->mDb->query( $query );
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_transaction`";
-		$result = $this->mDb->query( $query );
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_reason`";
-		$result = $this->mDb->query( $query );
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_roomstat`";
-		$result = $this->mDb->query( $query );
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_caller`";
-		$result = $this->mDb->query( $query );
-		$query = "DELETE FROM `".BIT_DB_PREFIX."task_staff`";
-		$result = $this->mDb->query( $query );
+		while ($res = $result->fetchRow()) {
+			$res['display_url'] = CONTACT_PKG_URL.'view.php?content_id='.$res['caller_id'];
+			$ret[] = $res;
+		}
 		return $ret;
 	}
 
@@ -700,7 +396,7 @@ class Tasks extends LibertyContent {
 	 * Get list of transaction records relating to the active ticket
 	 */
 	function loadTransactionList() {
-		if( $this->isValid() ) {
+//		if( $this->isValid() ) {
 		
 			$sql = "SELECT tran.*, tag.`title` AS status, sn.`real_name` AS staff_name 
 				FROM `".BIT_DB_PREFIX."task_transaction` tran
@@ -714,8 +410,9 @@ class Tasks extends LibertyContent {
 			while( $res = $result->fetchRow() ) {
 				$this->mInfo['trans'][$res['transact_no']] = $res;
 			}
-		}
+//		}
 	}
-
+	
+	function hasViewPermission( $pVerifyAccessControl ) { return FALSE; }
 }
 ?>

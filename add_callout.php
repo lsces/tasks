@@ -18,12 +18,16 @@ $gBitSystem->verifyPackage( 'tasks' );
 require_once( TASKS_PKG_PATH.'Tasks.php');
 $gTask = new Tasks();
 
-$currentInfo = array();
-$currentInfo['title'] = 'View Patrol jobs';
-$currentInfo['patrol'] = $gTask->getPatrolList();
+$offset = 0;
+if( !empty( $_REQUEST['type'] ) ) {
+	$offset =  ($_REQUEST['type']);
+}
 
-$gBitSmarty->assign_by_ref( 'currentInfo', $currentInfo );
+$_REQUEST['task_offset'] = $offset;
+$gTask->store( $_REQUEST );
+$gBitUser->storePreference('task_process', $gTask->mContentId );
 
-// Display the template
-$gBitSystem->display( 'bitpackage:tasks/view.tpl', tra( 'View Outstanding Enquiries' ) , array( 'display_mode' => 'list' ));
+// Refresh display
+header ("location: ".TASKS_PKG_URL."index.php");
+die;
 ?>

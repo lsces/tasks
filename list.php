@@ -16,14 +16,12 @@ require_once( '../kernel/setup_inc.php' );
 $gBitSystem->verifyPackage( 'tasks' );
 
 require_once( TASKS_PKG_PATH.'Tasks.php');
-$gTask = new Tasks();
 
 $currentInfo = array();
-$currentInfo['title'] = 'View Patrol jobs';
-$currentInfo['patrol'] = $gTask->getPatrolList();
+$currentInfo['title'] = 'Outstanding Jobs';
 
 $gBitSmarty->assign_by_ref( 'currentInfo', $currentInfo );
 
 // Display the template
-$gBitSystem->display( 'bitpackage:tasks/view.tpl', tra( 'View Outstanding Enquiries' ) , array( 'display_mode' => 'list' ));
+$gBitSystem->display( 'bitpackage:tasks/list.tpl', tra( 'Outstanding Jobs' ) , array( 'display_mode' => 'list' ));
 ?>

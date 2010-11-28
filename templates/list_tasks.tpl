@@ -12,7 +12,7 @@
 			{section name=task loop=$taskInfo.tasks}
 				<tr class="{cycle values="even,odd"}" title="{$taskInfo[task].title|escape}">
 					<td>
-						{$taskInfo.tasks[task].task_time}
+						{$taskInfo.tasks[task].ticket_ref}
 					</td>
 					<td>
 						{$taskInfo.tasks[task].staff_name|escape}
