@@ -218,7 +218,7 @@ class Tasks extends LibertyContent {
 	 * @param array different possibilities depending on derived class
 	 * @return string the link to display the page.
 	 */
-	function getDisplayUrl( $pContentId=NULL ) {
+	public static function getDisplayUrl( $pContentId=NULL ) {
 		global $gBitSystem;
 		if( empty( $pContentId ) ) {
 			$pContentId = $this->mContentId;
@@ -234,13 +234,13 @@ class Tasks extends LibertyContent {
 	 * @param array mInfo style array of content information
 	 * @return the link to display the page.
 	 */
-	function getDisplayLink( $pText, $aux ) {
-		if ( $this->mContentId != $aux['content_id'] ) $this->load($aux['content_id']);
+	function getDisplayLink( $pText=NULL, $pMixed=NULL, $pAnchor=NULL ) {
+		if ( $this->mContentId != $pMixed['content_id'] ) $this->load($aux['content_id']);
 
 		if (empty($this->mInfo['content_id']) ) {
-			$ret = '<a href="'.$this->getDisplayUrl($aux['content_id']).'">'.$aux['title'].'</a>';
+			$ret = '<a href="'.$this->getDisplayUrl($pMixed['content_id']).'">'.$pMixed['title'].'</a>';
 		} else {
-			$ret = '<a href="'.$this->getDisplayUrl($aux['content_id']).'">'."Citizen - ".$this->mInfo['title'].'</a>';
+			$ret = '<a href="'.$this->getDisplayUrl($pMixed['content_id']).'">'."Citizen - ".$this->mInfo['title'].'</a>';
 		}
 		return $ret;
 	}
@@ -252,7 +252,7 @@ class Tasks extends LibertyContent {
 	 * @param array mInfo style array of content information
 	 * @return string Text for the title description
 	 */
-	function getTitle( $pHash = NULL ) {
+	function getTitle( $pHash = NULL, $pDefault=TRUE ) {
 		$ret = NULL;
 		if( empty( $pHash ) ) {
 			$pHash = &$this->mInfo;
@@ -725,7 +725,7 @@ vd($ret);
 	function loadTransactionList() {
 		if( $this->isValid() ) {
 		
-			$sql = "SELECT tran.*, tag.`title` AS status, sn.`real_name` AS staff_name 
+			$sql = "SELECT tran.*, tag.`title` AS status, sn.`real_name` AS staff_name
 				FROM `".BIT_DB_PREFIX."task_transaction` tran
 				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (tran.`room` = tag.`reason`)
 				LEFT JOIN `".BIT_DB_PREFIX."users_users` sn ON (sn.`user_id` = tran.`staff_id`)
