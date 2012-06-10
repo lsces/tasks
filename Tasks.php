@@ -6,7 +6,7 @@
  * All Rights Reserved. See below for details and a complete list of authors.
  * Licensed under the GNU LESSER GENERAL PUBLIC LICENSE. See http://www.gnu.org/copyleft/lesser.html for details
  *
- * @package citizen
+ * @package tasks
  */
 
 /**
@@ -23,16 +23,16 @@ class Tasks extends LibertyBase {
 	var $mClientId;
 
 	/**
-	 * Constructor 
-	 * 
+	 * Constructor
+	 *
 	 * Build a Citizen object based on LibertyContent
 	 * @param integer Citizen Id identifer
-	 * @param integer Base content_id identifier 
+	 * @param integer Base content_id identifier
 	 */
 	function Tasks( $pTicketId = NULL, $pContentId = NULL ) {
-		BitBase::BitBase();
 		$this->mTicketId = (int)$pTicketId;
 		$this->mContentId = (int)$pContentId;
+		parent::__construct();
 		$this->mPropertyId = 0;
 		// Permission setup
 		$this->mViewContentPerm  = 'p_tasks_view';
@@ -81,13 +81,13 @@ class Tasks extends LibertyBase {
 		} else {
 			$pParamHash['caller_id'] = 0;
 		}
-			
+
 		if ( !empty( $pParamHash['patrol'] ) ) {
 			$pParamHash['ticket_ref'] = $pParamHash['patrol'];
 		} else {
 			$pParamHash['ticket_ref'] = $this->mDb->NOW();
 		}
-			
+
 		// Secondary store entries
 /*		if( $this->isValid() ) {
 			if ( !empty( $pParamHash['new_client'] ) ) {
@@ -124,7 +124,7 @@ class Tasks extends LibertyBase {
 	**/
 	function store( &$pParamHash ) {
 		if( $this->verify( $pParamHash ) ) {
-			// Start a transaction wrapping the whole insert into liberty 
+			// Start a transaction wrapping the whole insert into liberty
 
 			$this->mDb->StartTrans();
 			$table = BIT_DB_PREFIX."task_ticket";
@@ -143,7 +143,7 @@ class Tasks extends LibertyBase {
 				$pParamHash['task_store']['init_id'] = $gBitUser->mUserId;
 				$pParamHash['task_store']['caller_id'] = $pParamHash['caller_id'];
 				$pParamHash['task_store']['department'] = $pParamHash['task_offset'];
-			
+
 				$this->mContentId = $pParamHash['content_id'];
 				$result = $this->mDb->associateInsert( $table, $pParamHash['task_store'] );
 			}
@@ -171,7 +171,7 @@ class Tasks extends LibertyBase {
 		}
 		return $ret;
 	}
-    
+
 	/**
 	 * Returns Request_URI to a Task content object
 	 *
@@ -190,7 +190,7 @@ class Tasks extends LibertyBase {
 
 	/**
 	 * Returns HTML link to display a Task object
-	 * 
+	 *
 	 * @param string Not used ( generated locally )
 	 * @param array mInfo style array of content information
 	 * @return the link to display the page.
@@ -233,7 +233,7 @@ class Tasks extends LibertyBase {
 	}
 
 	/**
-	 * Returns title of a queue 
+	 * Returns title of a queue
 	 * @todo Need to cache department/queue information in object
 	 *
 	 * @param integer Queue Number
@@ -243,9 +243,9 @@ class Tasks extends LibertyBase {
 		$query = "SELECT rs.`title` AS queue FROM `".BIT_DB_PREFIX."task_roomstat` rs WHERE rs.`terminal` = 80 + $queue";
 		return $this->mDb->getOne( $query );
 	}
-	
+
 	/**
-	 * Gets the next ticket number from a queue 
+	 * Gets the next ticket number from a queue
 	 *
 	 * @param integer Queue Number
 	 * @return bool True if switched to a valid task
@@ -260,9 +260,9 @@ class Tasks extends LibertyBase {
 		if ( $next ) return true;
 		else return false;
 	}
-	
+
 	/**
-	 * Returns title of a queue 
+	 * Returns title of a queue
 	 * @todo Need to cache department/queue information in object
 	 *
 	 * @param integer Queue Number
@@ -278,16 +278,16 @@ class Tasks extends LibertyBase {
 		if ( $next ) return true;
 		else return false;
 	}
-	
+
 	/**
 	 * Returns list of tesk entries
 	 *
-	 * @param integer 
+	 * @param integer
 	 * @return array Enquiry tickets
 	 */
 	function getList( &$pListHash ) {
 		LibertyContent::prepGetList( $pListHash );
-		
+
 		$whereSql = $joinSql = $selectSql = '';
 		$bindVars = array();
 		array_push( $bindVars, $pListHash['content_id'] );
@@ -297,10 +297,10 @@ class Tasks extends LibertyBase {
 //		$this->getServicesSql( 'content_list_sql_function', $selectSql, $joinSql, $whereSql, $bindVars );
 
 		$query = "SELECT ti.*, tr.`title` as reason
-				FROM `".BIT_DB_PREFIX."task_ticket` ti 
+				FROM `".BIT_DB_PREFIX."task_ticket` ti
 				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tr ON (tr.`reason` = ti.`room`)
 				$joinSql
-				WHERE ti.`content_id` = ? $whereSql  
+				WHERE ti.`content_id` = ? $whereSql
 				order by ti.`ticket_ref`";
 		$query_cant = "SELECT COUNT(ti.`ticket_no`) FROM `".BIT_DB_PREFIX."task_ticket` ti
 				$joinSql
@@ -321,11 +321,11 @@ class Tasks extends LibertyBase {
 		LibertyContent::postGetList( $pListHash );
 		return $ret;
 	}
-	
+
 	/**
 	 * Returns list of queues
 	 *
-	 * @param integer 
+	 * @param integer
 	 * @return array Queue records
 	 */
 	function listQueues() {
@@ -343,11 +343,11 @@ class Tasks extends LibertyBase {
 		}
 		return $result;
 	}
-	
+
 	/**
 	 * Returns list of queue activity
 	 *
-	 * @param integer 
+	 * @param integer
 	 * @return array Queue activity records
 	 */
 	function getQueueList( &$pListHash = NULL ) {
@@ -368,18 +368,18 @@ class Tasks extends LibertyBase {
 		}
 		return $ret;
 	}
-	
+
 	/**
 	 * Returns list of patrol activity
 	 *
-	 * @param integer 
+	 * @param integer
 	 * @return array patrol activity records
 	 */
 	function getPatrolList( &$pListHash = NULL ) {
 		$query = "SELECT tic.*, r.title AS patrol, lc.*
 			FROM `".BIT_DB_PREFIX."task_ticket` tic
-			LEFT JOIN `".BIT_DB_PREFIX."task_reason` r ON r.`reason` = tic.`room` 
-			LEFT JOIN `".BIT_DB_PREFIX."liberty_content` lc ON lc.`content_id` = tic.`caller_id` 
+			LEFT JOIN `".BIT_DB_PREFIX."task_reason` r ON r.`reason` = tic.`room`
+			LEFT JOIN `".BIT_DB_PREFIX."liberty_content` lc ON lc.`content_id` = tic.`caller_id`
 			WHERE tic.`room` = 1 AND tic.`ticket_ref` BETWEEN CURRENT_DATE AND CURRENT_DATE + 1
 			ORDER BY tic.`ticket_ref`";
 
@@ -397,7 +397,7 @@ class Tasks extends LibertyBase {
 	 */
 	function loadTransactionList() {
 //		if( $this->isValid() ) {
-		
+
 			$sql = "SELECT tran.*, tag.`title` AS status, sn.`real_name` AS staff_name
 				FROM `".BIT_DB_PREFIX."task_transaction` tran
 				LEFT JOIN `".BIT_DB_PREFIX."task_reason` tag ON (tran.`room` = tag.`reason`)
@@ -412,7 +412,7 @@ class Tasks extends LibertyBase {
 			}
 //		}
 	}
-	
+
 	function hasViewPermission( $pVerifyAccessControl ) { return FALSE; }
 	function hasAdminPermission( $pVerifyAccessControl ) { return FALSE; }
 }
